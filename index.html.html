@@ -1,0 +1,241 @@
+<!DOCTYPE html>
+<html>
+<head>
+  <title>Simulación de la Ley de Inercia con Colisión</title>
+  <style>
+    body {
+      font-family: 'Arial', sans-serif;
+      background-color: #f4f4f9;
+      display: flex;
+      flex-direction: column;
+      align-items: center;
+      justify-content: center;
+      height: 100vh;
+      margin: 0;
+    }
+
+    canvas {
+      border: 2px solid #333;
+      background-color: #ffffff;
+      box-shadow: 0 4px 8px rgba(0, 0, 0, 0.1);
+      margin-bottom: 20px;
+    }
+
+    #menu {
+      background-color: #fff;
+      border: 1px solid #ccc;
+      border-radius: 8px;
+      padding: 20px;
+      box-shadow: 0 4px 8px rgba(0, 0, 0, 0.1);
+      margin-bottom: 20px;
+    }
+
+    #menu label {
+      font-weight: bold;
+      margin-right: 10px;
+    }
+
+    #menu input {
+      margin-bottom: 10px;
+      padding: 5px;
+      border: 1px solid #ccc;
+      border-radius: 4px;
+      width: 100px;
+    }
+
+    #menu button {
+      background-color: #007bff;
+      color: white;
+      border: none;
+      border-radius: 4px;
+      padding: 10px 20px;
+      font-size: 16px;
+      cursor: pointer;
+      margin-right: 10px;
+      transition: background-color 0.3s;
+    }
+
+    #menu button:hover {
+      background-color: #0056b3;
+    }
+
+    #results {
+      background-color: #fff;
+      border: 1px solid #ccc;
+      border-radius: 8px;
+      padding: 20px;
+      box-shadow: 0 4px 8px rgba(0, 0, 0, 0.1);
+      width: 300px;
+      text-align: center;
+    }
+
+    #results p {
+      margin: 10px 0;
+      font-size: 16px;
+    }
+  </style>
+</head>
+<body>
+  <canvas id="myCanvas" width="500" height="500"></canvas>
+
+  <div id="menu">
+    <label for="weight1">Peso del cuerpo 1 (kg):</label>
+    <input type="number" id="weight1" value="10" min="1" step="0.1"><br>
+
+    <label for="initialVelocity1">Velocidad Inicial del cuerpo 1 (m/s):</label>
+    <input type="number" id="initialVelocity1" value="5" min="0" step="0.1"><br>
+
+    <label for="weight2">Peso del cuerpo 2 (kg):</label>
+    <input type="number" id="weight2" value="8" min="1" step="0.1"><br>
+
+    <label for="initialVelocity2">Velocidad Inicial del cuerpo 2 (m/s):</label>
+    <input type="number" id="initialVelocity2" value="0" min="0" step="0.1"><br>
+
+    <button onclick="startSimulation()">Iniciar Simulación</button>
+    <button onclick="stopSimulation()">Detener Simulación</button>
+    <button onclick="solveProblem()">Resolver Problema</button>
+  </div>
+
+  <div id="results">
+    <p id="result1">Distancia recorrida por el cuerpo 1: 0 metros</p>
+    <p id="result2">Distancia recorrida por el cuerpo 2: 0 metros</p>
+  </div>
+
+  <script>
+    // Obtener el elemento canvas
+    var canvas = document.getElementById("myCanvas");
+    var ctx = canvas.getContext("2d");
+
+    // Variables de los objetos
+    var x1, y1, radius1, vx1, vy1, weight1;
+    var x2, y2, radius2, vx2, vy2, weight2;
+    var animationId;
+    var collisionTime = 0;
+
+    // Función para iniciar la simulación
+    function startSimulation() {
+      // Obtener los valores del menú
+      weight1 = parseFloat(document.getElementById("weight1").value);
+      var initialVelocity1 = parseFloat(document.getElementById("initialVelocity1").value);
+      weight2 = parseFloat(document.getElementById("weight2").value);
+      var initialVelocity2 = parseFloat(document.getElementById("initialVelocity2").value);
+
+      // Definir las propiedades de los objetos
+      x1 = 50;
+      y1 = canvas.height / 2;
+      radius1 = 20;
+      vx1 = initialVelocity1;
+      vy1 = 0;
+
+      x2 = canvas.width - 50;
+      y2 = canvas.height / 2;
+      radius2 = 20;
+      vx2 = initialVelocity2;
+      vy2 = 0;
+
+      // Iniciar la animación
+      animationId = requestAnimationFrame(animate);
+    }
+
+    // Función para detener la simulación
+    function stopSimulation() {
+      cancelAnimationFrame(animationId);
+    }
+
+    // Función para resolver el problema
+    function solveProblem() {
+      // Guardar las posiciones y velocidades iniciales
+      var tempX1 = x1;
+      var tempX2 = x2;
+      var tempVx1 = vx1;
+      var tempVx2 = vx2;
+
+      var distance1 = 0;
+      var distance2 = 0;
+      var timeStep = 0.01;
+      var maxSteps = 10000; // Limitar el número de pasos para evitar bucles infinitos
+      var steps = 0;
+
+      while (tempX1 + radius1 < canvas.width && tempX2 - radius2 > 0 && steps < maxSteps) {
+        // Actualizar posiciones de los objetos
+        tempX1 += tempVx1 * timeStep;
+        tempX2 += tempVx2 * timeStep;
+        distance1 += Math.abs(tempVx1 * timeStep);
+        distance2 += Math.abs(tempVx2 * timeStep);
+        steps++;
+
+        // Detectar colisión
+        if (Math.sqrt(Math.pow(tempX1 - tempX2, 2)) <= radius1 + radius2) {
+          // Calcular nuevas velocidades después de la colisión
+          var newVx1 = (tempVx1 * (weight1 - weight2) + 2 * weight2 * tempVx2) / (weight1 + weight2);
+          var newVx2 = (tempVx2 * (weight2 - weight1) + 2 * weight1 * tempVx1) / (weight1 + weight2);
+          tempVx1 = newVx1;
+          tempVx2 = newVx2;
+        }
+
+        // Detener el bucle si los cuerpos se detienen
+        if (Math.abs(tempVx1) < 0.001 && Math.abs(tempVx2) < 0.001) {
+          break;
+        }
+      }
+
+      // Actualizar resultados en la página
+      document.getElementById('result1').innerText = `Distancia recorrida por el cuerpo 1: ${distance1.toFixed(2)} metros`;
+      document.getElementById('result2').innerText = `Distancia recorrida por el cuerpo 2: ${distance2.toFixed(2)} metros`;
+    }
+
+    // Función para dibujar los objetos
+    function drawObjects() {
+      ctx.clearRect(0, 0, canvas.width, canvas.height);
+      ctx.beginPath();
+      ctx.arc(x1, y1, radius1, 0, 2 * Math.PI);
+      ctx.fillStyle = "blue";
+      ctx.fill();
+      ctx.closePath();
+
+      ctx.beginPath();
+      ctx.arc(x2, y2, radius2, 0, 2 * Math.PI);
+      ctx.fillStyle = "red";
+      ctx.fill();
+      ctx.closePath();
+    }
+
+    // Función de animación
+    function animate() {
+      animationId = requestAnimationFrame(animate);
+
+      // Actualizar posiciones de los objetos
+      x1 += vx1;
+      y1 += vy1;
+      x2 += vx2;
+      y2 += vy2;
+
+      // Detectar colisión
+      if (Math.sqrt(Math.pow(x1 - x2, 2)) <= radius1 + radius2) {
+        // Calcular nuevas velocidades después de la colisión
+        var newVx1 = (vx1 * (weight1 - weight2) + 2 * weight2 * vx2) / (weight1 + weight2);
+        var newVx2 = (vx2 * (weight2 - weight1) + 2 * weight1 * vx1) / (weight1 + weight2);
+        vx1 = newVx1;
+        vx2 = newVx2;
+        collisionTime++;
+      }
+
+      // Rebote en los bordes del canvas
+      if (x1 - radius1 < 0 || x1 + radius1 > canvas.width) {
+        vx1 = -vx1;
+      }
+      if (x2 - radius2 < 0 || x2 + radius2 > canvas.width) {
+        vx2 = -vx2;
+      }
+      if (y1 - radius1 < 0 || y1 + radius1 > canvas.height) {
+        vy1 = -vy1;
+      }
+      if (y2 - radius2 < 0 || y2 + radius2 > canvas.height) {
+        vy2 = -vy2;
+      }
+
+      drawObjects();
+    }
+  </script>
+</body>
+</html>
